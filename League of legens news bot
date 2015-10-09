@@ -1,0 +1,143 @@
+    #encoding=utf8
+import telebot
+from telebot import types
+import time
+import wikipedia
+import sys
+from imp import reload
+import tweepy
+import urllib3
+reload(sys)
+
+sys.setdefaultencoding("utf-8")
+
+CONSUMER_KEY = 'KEY'
+CONSUMER_SECRET = 'KEY'
+ACCESS_KEY = 'KEY' 
+ACCESS_SECRET = 'KEY' 
+administrador = <ID admin>
+TOKEN = 'TOKEN	'
+usuarios = [line.rstrip('\n') for line in open('usuarios.txt')]
+numeros = [line.rstrip('\n') for line in open('numeros.txt')]
+bot = telebot.TeleBot ('TOKEN')
+auth = tweepy.OAuthHandler(CONSUMER_KEY, CONSUMER_SECRET)
+auth.set_access_token(ACCESS_KEY, ACCESS_SECRET) 
+
+def listener(messages):
+    for m in messages:
+        cid = m.chat.id
+        if m.content_type == 'text':
+            if cid > 0:
+                mensaje = str(m.chat.first_name) + " [" + str(cid) + " - " + time.strftime("%c") + "]: " + m.text
+            else:
+                mensaje = str(m.from_user.first_name) + "[" + str(m.chat.title) + " - " + time.strftime("%c") + "]: " + m.text
+            f = open('log.txt', 'a')
+            f.write(mensaje + "\n")
+            f.close()
+            print mensaje
+
+bot.set_update_listener(listener)
+
+
+@bot.message_handler(commands=['garfieldtequiero'])
+def command_garfieldtequiero(m):
+    cid = m.chat.id
+    name = m.chat.first_name
+    bot.send_photo(cid, open('miimagen.jpg', 'rb'))
+
+@bot.message_handler(commands=['start'])
+def command_start(m):
+    cid = m.chat.id
+    name = m.chat.first_name
+    if cid > 0:
+        if not str(cid) in numeros: # Con esta sentencia, hacemos que solo se ejecute lo de abajo cuando un usuario hace uso del bot por primera vez.
+            usuarios.append(str(cid)) # En caso de no estar en la lista de usuarios, lo añadimos.
+            aux = open('usuarios.txt', 'a') # Y lo insertamos en el fichero 'usuarios.txt'
+            aux.write( str(name) + "\n")
+            aux.close()
+            numeros.append(str(cid))
+            aux = open('numeros.txt', 'a') # Y lo insertamos en el fichero 'usuarios.txt'
+            aux.write( str(cid) + "\n")
+            aux.close()
+            bot.send_message( cid, "Bienvenido, al bot sobre noticias del League of Legends señor/a "+ str(m.chat.first_name))
+            bot.send_message(administrador,"Nuevo Usuario" + "\n" + "Usuario: " + str(name) + "\n" + "ID: " + str(cid))
+        else:
+             if not str(cid) in numeros:
+                usuarios.append(str(cid)) # En caso de no estar en la lista de usuarios, lo añadimos.
+                aux = open('numeros.txt', 'a') # Y lo insertamos en el fichero 'usuarios.txt'
+                aux.write( str(cid) + "\n")
+                aux.close()
+                usuarios.append(str(cid)) # En caso de no estar en la lista de usuarios, lo añadimos.
+                aux = open('usuarios.txt', 'a') # Y lo insertamos en el fichero 'usuarios.txt'
+                aux.write( str(m.chat.title) + "\n")
+                aux.close()
+                bot.send_message( cid ,"Hola,soy el bot de noticias del League of Legends, encantado de estar en "+ str(m.chat.title))
+
+
+@bot.message_handler(commands=['ultimasnoticias'])
+def command_ultimasnoticias(m):
+    cid = m.chat.id 
+    x = tweepy.API(auth)
+    msg = m.text[6:]
+    for tweets in x.search(q="#PBE", count=5, result_type='recent'):
+        bot.send_message(cid, " $ " + tweets.user.screen_name + " $ " + tweets.text)
+
+@bot.message_handler(commands=['informacion'])
+def command_informacion(m):
+    cid = m.chat.id
+    bot.send_message( cid, "- Este bot proporciona las últimas noticias del League Of Legends \n \n - ÚLTIMA ACTUALIZACIÓN: 1.4  \n \n - Creado por @Garfieldrockero")
+
+@bot.message_handler(commands=['votar'])
+def comnmand_votar(m):
+    cid =m.chat.id
+    bot.send_message( cid, "Puedes votar el bot aquí: \n https://telegram.me/storebot?start=noticiaslolbot")
+
+@bot.message_handler(commands=['contactar'])
+def command_contactar(m):
+    cid = m.chat.id
+    name =m.chat.first_name
+    msg = m.text[10:]
+    bot.send_message( 11186174, "Mensaje:" +  msg + "\n" + "Usuario: " + str(name) + "\n" + "ID: " + str(cid))
+
+@bot.message_handler(commands=['all'])
+def command_all(m):
+    cid = m.chat.id
+    if cid != administrador: # Comprobamos que seamos nosotros quienes ejecutamos el comando
+        bot.send_message( administrador, "El usuario con ID: " + str(cid) + " ha intentado utilizar el comando para enviar difundidos") # Si lo ejecuta otro, el bot nos avisará
+    else: # Si somos nosotros...
+        for ID in numeros:
+            try: # Intentamos enviar el mensaje.
+                bot.send_message(int(ID), m.text[4:])
+            except: # Hacemos control de excepciones porque, si han borrado la conversación del bot o le han expulsado del grupo en el que estaba, se generará una excepción al intentar enviar el mensaje.
+                bot.send_message( administrador, "Error enviando mensaje a: " + ID)
+            else:
+                bot.send_message( administrador, "Éxito enviando mensaje a: " + ID)
+
+@bot.message_handler(commands=['wiki'])
+def command_wiki(m):
+    cid = m.chat.id 
+    msg = m.text[6:]
+    wikipedia.set_lang("es")
+    bot.send_message(cid,wikipedia.summary(msg, sentences=2))
+    
+@bot.message_handler(commands=['oseahello'])
+def command_oseahello(m):
+    cid = m.chat.id
+    bot.send_message(cid, 'https://www.youtube.com/watch?v=GJtSXqwobdw')
+
+@bot.message_handler(commands=['ofertas'])
+def command_oferta(m):
+    cid = m.chat.id
+    bot.send_photo(cid, open('ofertas/oferta4.jpg', 'rb'))
+
+@bot.message_handler(commands=['directo'])
+def comman_directo(m):
+    msg = m.text[8:]
+    try:
+        bot.send_message(<cid de la persona>, msg) #poner cid de la persona a contactar
+    except:
+        bot.send_message(administrador, "Error enviando mensaje a: " + str(cid))
+    else:
+        bot.send_message(administrador, "Éxito enviando mensaje a: " + str(cid))
+
+bot.polling(none_stop=True)
